@@ -1,0 +1,39 @@
+# Run outputs (per-stage CSVs, win matrices, metrics)
+runs/
+
+# LLM response cache (sqlite, ~ tens of MB)
+cache/
+
+# Raw dataset (downloaded from Kaggle)
+data/
+
+# Pulled Kaggle notebook (datafan07's reproduction — not ours to redistribute)
+notebooks_pulled/
+
+# Auxiliary feedback-data assets pulled at PS1 setup
+data_aux/
+
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local model / experiment files
+*.pkl
+*.bin
+*.ckpt
+*.pt
+*.safetensors

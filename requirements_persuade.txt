@@ -1,0 +1,54 @@
+# Python dependencies for the PERSUADE/LLM Phase-1 MVP — datafan07 reproduction.
+#
+# Installed by `setup_workstation.ps1` into `experiments/persuade_aes/.venv/`.
+# PyTorch is installed separately (with CUDA wheels) before this file is read;
+# do not list `torch` here.
+#
+# Pinning strategy: keep transformers stack within the major versions
+# datafan07 used (May 2024 — transformers 4.40, sentence-transformers 2.8,
+# tokenizers 0.19) to maximize the chance that the `sent-debsmall` checkpoints
+# load cleanly. Other packages use floor-bounds only.
+
+# === Core data ===
+numpy>=1.24
+pandas>=2.0
+polars>=0.20
+scipy>=1.10
+scikit-learn>=1.3
+joblib>=1.3
+tqdm>=4.65
+
+# === Plotting (referenced by the notebook) ===
+matplotlib>=3.7
+seaborn>=0.12
+
+# === NLP feature engineering ===
+spacy>=3.7
+nltk>=3.8
+textstat>=0.7
+pyspellchecker>=0.8
+
+# === Transformer stack — close to datafan07 versions ===
+transformers>=4.40,<4.50
+sentence-transformers>=2.7,<3.0
+tokenizers>=0.19,<0.21
+huggingface_hub>=0.23
+safetensors>=0.4
+datasets>=2.14
+einops>=0.7
+
+# === Notebook execution (for stage_1_run_kaggle_notebook.py wrapper) ===
+# Dropped `jupyter` meta-package (2026-05-14) -- it pulled in jupyterlab,
+# which writes labextension files with paths >260 chars and trips the
+# Windows MAX_PATH limit during install. We do not use the JupyterLab
+# UI; papermill runs notebooks programmatically using nbformat +
+# ipykernel only.
+nbformat>=5.9
+ipykernel>=6.25
+papermill>=2.5
+
+# === Final regressor ===
+lightgbm>=4.0
+
+# === Kaggle CLI (for downloading aux datasets from inside the venv) ===
+kaggle>=1.6

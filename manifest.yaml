@@ -1,0 +1,26 @@
+# PERSUADE / LLM selective pairwise refinement — run manifest
+#
+# This file is rewritten by scripts/run_all.py on every full pipeline
+# pass. It records what was actually run, distinct from the plan in
+# README.md.
+#
+# Fields:
+#   experiment      : slug — must match folder name
+#   phase           : "1" | "2" | "3"
+#   pipeline_version: monotonically bumped on breaking changes
+#   last_run        : populated by run_all.py
+#
+# The placeholders below describe the schema; a real run will overwrite.
+
+experiment: persuade_aes
+phase: "1"
+pipeline_version: "0.1.0"
+
+last_run:
+  run_dir: null              # e.g. "runs/run_001_seed_42"
+  seed: null                 # int
+  provider: null             # "openai" | "anthropic"
+  model_id: null             # e.g. "gpt-4o-2024-08-06" or "claude-sonnet-4-6"
+  temperature: null          # float
+  top_k: null                # int
+  timestamp_utc: null        # ISO 8601
