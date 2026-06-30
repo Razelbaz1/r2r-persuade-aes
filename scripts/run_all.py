@@ -120,7 +120,7 @@ def cli() -> None:
 
     # PS2 — Top-k selection
     ps2 = _load_stage("stage_2_select_top_k")
-    ps2.main(run_dir=run_dir, top_k=args.top_k)
+    ps2.main(run_dir=run_dir, rank_from=1, rank_to=args.top_k)
     print("PS2 done.")
 
     # PS3 — LLM pairwise

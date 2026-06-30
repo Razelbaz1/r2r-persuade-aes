@@ -6,6 +6,12 @@ All three are computed only inside the top-k subset against the true
 human scores. Pairwise accuracy skips pairs with equal true scores per
 step 15.
 
+`partial_order_accuracy` (PACP) is the headline metric Lihi reports in
+`SCALA_results.ipynb`: partial-order pairwise accuracy with half credit
+for predicted ties, evaluated on tiers of equal true score. It differs
+from `pairwise_accuracy` above only in tie handling (0.5 credit) and in
+operating on explicit tiers rather than raw scores.
+
 References to the Sushi implementations preserved for traceability:
 - tau_b: `pipeline/notebooks/stage_3_per_user.ipynb` cell ~280
 - pairwise accuracy: same notebook cell ~250 (PACP)
@@ -73,6 +79,60 @@ def pairwise_accuracy(
     if total == 0:
         return float("nan")
     return correct / total
+
+
+def tiers_by_value(
+    items: Sequence,
+    value_by_item: dict,
+    descending: bool = True,
+) -> list[list]:
+    """Group items into ordered tiers of equal value (best tier first).
+
+    Items sharing a value form one tier; tiers are sorted by value
+    (descending by default, so the highest-scored items land in tier 0).
+    Builds the `true_groups` / `pred_groups` arguments of
+    `partial_order_accuracy` from a per-item value: true human score,
+    AES predicted score, or Copeland win count.
+    """
+    by_value: dict = {}
+    for item in items:
+        by_value.setdefault(value_by_item[item], []).append(item)
+    return [by_value[v] for v in sorted(by_value, reverse=descending)]
+
+
+def partial_order_accuracy(
+    true_groups: Sequence[Sequence],
+    pred_groups: Sequence[Sequence],
+) -> float:
+    """Partial-order pairwise accuracy (PACP) — Lihi's headline metric.
+
+    Counts every pair of items drawn from two *different* true tiers (the
+    earlier tier should outrank the later one). A pair scores 1.0 when the
+    prediction ranks them in the correct tier order, 0.5 when the
+    prediction ties them in one tier, and 0.0 when reversed. Within-tier
+    true pairs are skipped — their order is immaterial.
+
+    Mirrors `partial_order_accuracy` in `SCALA_results.ipynb`; reproduces
+    the reference values 0.1724 / 0.4138 / 0.4828 on that notebook's toy
+    example. Returns NaN when there are no cross-tier pairs.
+    """
+    pred_group: dict = {}
+    for group_idx, group in enumerate(pred_groups):
+        for item in group:
+            pred_group[item] = group_idx
+
+    correct = 0.0
+    total = 0
+    for higher_idx in range(len(true_groups)):
+        for lower_idx in range(higher_idx + 1, len(true_groups)):
+            for h in true_groups[higher_idx]:
+                for l in true_groups[lower_idx]:
+                    total += 1
+                    if pred_group[h] < pred_group[l]:
+                        correct += 1.0
+                    elif pred_group[h] == pred_group[l]:
+                        correct += 0.5
+    return correct / total if total else float("nan")
 
 
 def evaluate_ranking(

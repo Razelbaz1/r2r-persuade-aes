@@ -14,7 +14,6 @@ The pipeline runs in six numbered stages. Each stage reads from a per-run direct
 | PS1 | `scripts/stage_1_run_kaggle_notebook.py` | Reproduce a public Kaggle AES notebook locally via papermill. The notebook runs 15-fold StratifiedKFold CV with a LightGBM regressor under a custom QWK objective. Every essay receives an out-of-fold prediction. | `stage_1_aes/predictions.csv` (17,307 rows) |
 | PS2 | `scripts/stage_2_select_top_k.py` | Sort by predicted score and select a refinement region (a window of ranks around the top-k cutoff). | `stage_2_top_k/top_k.csv` |
 | PS3 | `scripts/stage_3_run_llm_pairwise.py` | Send each unordered essay pair in the refinement region to a prompted LLM judge. Records the win matrix and a per-call audit log. A/B order is randomized per pair to neutralize position bias. | `stage_3_llm/{win_matrix.csv, pairwise_log.csv}` |
-| PS3b | `scripts/stage_3b_ensemble_win_matrices.py` | Optional: ensemble two or more win matrices (element-wise sum) into one. Used for multi-judge experiments. | `stage_3_llm/{win_matrix.csv, pairwise_log.csv}` (in the target run dir) |
 | PS4 | `scripts/stage_4_fuse_copeland.py` | Aggregate the win matrix into a refined ranking using Copeland scoring (with α tiebreak for ties). | `stage_4_fusion/{copeland_scores.csv, ranking_copeland.csv}` |
 | PS5 | `scripts/stage_5_evaluate.py` | Evaluate the AES-only ranking and the Copeland-refined ranking against the human scores. Reports Kendall's τ_b, Spearman's ρ, and pairwise ordering accuracy. | `stage_5_eval/metrics.csv` |
 
@@ -46,11 +45,13 @@ PS0 requires Kaggle API credentials at `~/.kaggle/kaggle.json`. PS3 requires `OP
 
 ## Running the pipeline
 
-End-to-end from scratch (uses gpt-4o-2024-08-06 as the pairwise judge):
+End-to-end from scratch (uses Claude Sonnet 4.6 as the pairwise judge, as in the paper):
 
 ```powershell
-python scripts/run_all.py --seed 42 --provider openai
+python scripts/run_all.py --seed 42 --provider anthropic --model claude-sonnet-4-6
 ```
+
+The pairwise judge is provider-agnostic; pass `--provider openai --model gpt-4o-2024-08-06` to use GPT-4o instead. The paper's reported results use Claude Sonnet 4.6.
 
 Individual stages can be invoked directly when iterating on one part of the pipeline without re-running expensive upstream stages:
 
@@ -77,7 +78,7 @@ Multi-seed runs over the A/B ordering seed:
 
 ## Cache
 
-LLM responses are cached on disk under `cache/llm_responses.sqlite` keyed by `(provider, model_id, temperature, prompt_hash, reasoning_effort)`. Re-running with identical inputs is free and instantaneous. The cache directory is gitignored; preserving it across run-dir cleanups is recommended (LLM responses are the expensive part).
+LLM responses are cached on disk under `cache/` (a diskcache directory) keyed by `(provider, model_id, temperature, prompt_hash, reasoning_effort)`. Re-running with identical inputs is free and instantaneous. The cache directory is gitignored; preserving it across run-dir cleanups is recommended (LLM responses are the expensive part).
 
 ## Layout
 
@@ -94,18 +95,13 @@ r2r-persuade-aes/
 │   ├── run_all.py
 │   ├── stage_0_download.py
 │   ├── stage_1_run_kaggle_notebook.py
-│   ├── stage_1_train_aes_baseline.py
 │   ├── stage_2_select_top_k.py
 │   ├── stage_3_run_llm_pairwise.py
-│   ├── stage_3b_ensemble_win_matrices.py
 │   ├── stage_4_fuse_copeland.py
 │   └── stage_5_evaluate.py
-├── notebooks/                   # Analysis notebooks + figure builders
+├── notebooks/                   # Analysis notebook + paper figures
 │   ├── 01_predictions_distribution.ipynb
 │   ├── 01_predictions_distribution.py
-│   ├── _build_figures_5_and_6.py
-│   ├── _build_fig4_claude.py
-│   ├── _aggregate_multiseed.py
 │   └── figures/                 # PNG figures (300 dpi) referenced by the paper
 ├── manifest.yaml                # Run metadata (last run config)
 ├── requirements_persuade.txt    # Python dependencies
@@ -136,6 +132,8 @@ The 17,307 OOF predictions land in `runs/<dir>/stage_1_aes/predictions.csv`; the
 - **PERSUADE 2.0 train.csv** — Kaggle competition *Learning Agency Lab Automated Essay Scoring 2.0*. Download via `kaggle competitions download -c learning-agency-lab-automated-essay-scoring-2 -f train.csv` (requires accepting the competition rules).
 - **datafan07/some-extra-features-cv-0-83** — public Kaggle notebook used as the AES baseline. Pulled at PS1 setup; not redistributed in this repo.
 
+> **Note on the data path.** `scripts/stage_0_download.py` and `scripts/stage_1_run_kaggle_notebook.py` resolve the data directory relative to this repository's location on disk. If you cloned this repo standalone, you may need to adjust that path so that `data/persuade/train.csv` resolves to the clone root on your machine before running PS0/PS1.
+
 ## License
 
-TBD.
+Released under the MIT License — see [LICENSE](LICENSE).
